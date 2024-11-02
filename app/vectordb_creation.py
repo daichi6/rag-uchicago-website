@@ -252,23 +252,53 @@ def create_and_save_vectordb(documents: List[Document],
         return None
 
 
+# Get ALL urls under our program 
+# Step 1: Fetch the HTML content of the page
+url = "https://datascience.uchicago.edu/education/masters-programs/ms-in-applied-data-science/in-person-program/"
+response = requests.get(url)
+html_content = response.content
+
+# Step 2: Parse the HTML with BeautifulSoup
+soup = BeautifulSoup(html_content, "html.parser")
+
+# Step 3: Initialize subpage list with the main URL to ensure it's included
+urls = [url]
+
+# Step 4: Find all links and filter those that match our pattern
+base_url = "https://datascience.uchicago.edu/education/masters-programs/ms-in-applied-data-science/"
+
+for link in soup.find_all("a", href=True):
+    href = link['href']
+    # Check if href starts with the base URL or matches the exact URL we want to include
+    if href.startswith(base_url) or href == url:
+        # Append the complete URL if relative or absolute
+        full_url = href if href.startswith("http") else requests.compat.urljoin(url, href)
+        urls.append(full_url)
+
+# Step 5: Remove duplicates if any
+urls = list(set(urls))  # unique links only
+print("Found subpage links:")
+for link in urls:
+    print(link)
+
+
 def main():
 
-    urls = [
-        "https://datascience.uchicago.edu/education/masters-programs/ms-in-applied-data-science/instructors-staff/",
-        "https://datascience.uchicago.edu/education/masters-programs/ms-in-applied-data-science/",
-        "https://datascience.uchicago.edu/education/masters-programs/ms-in-applied-data-science/faqs/",
-        "https://datascience.uchicago.edu/education/masters-programs/ms-in-applied-data-science/course-progressions/",
-        "https://datascience.uchicago.edu/education/masters-programs/ms-in-applied-data-science/tuition-fees-aid/",
-        "https://datascience.uchicago.edu/education/masters-programs/ms-in-applied-data-science/events-deadlines/",
-        "https://datascience.uchicago.edu/education/masters-programs/ms-in-applied-data-science/career-outcomes/",
-        "https://datascience.uchicago.edu/education/masters-programs/ms-in-applied-data-science/online-program/",
-        "https://datascience.uchicago.edu/education/masters-programs/ms-in-applied-data-science/how-to-apply/",
-        "https://datascience.uchicago.edu/education/masters-programs/ms-in-applied-data-science/our-students/",
-        "https://datascience.uchicago.edu/education/masters-programs/in-person-program/",
-        "https://datascience.uchicago.edu/education/masters-programs/ms-in-applied-data-science/capstone-projects/",
-        "https://datascience.uchicago.edu/education/masters-programs/online-program/" #add manually
-    ]
+    # urls = [
+    #     "https://datascience.uchicago.edu/education/masters-programs/ms-in-applied-data-science/instructors-staff/",
+    #     "https://datascience.uchicago.edu/education/masters-programs/ms-in-applied-data-science/",
+    #     "https://datascience.uchicago.edu/education/masters-programs/ms-in-applied-data-science/faqs/",
+    #     "https://datascience.uchicago.edu/education/masters-programs/ms-in-applied-data-science/course-progressions/",
+    #     "https://datascience.uchicago.edu/education/masters-programs/ms-in-applied-data-science/tuition-fees-aid/",
+    #     "https://datascience.uchicago.edu/education/masters-programs/ms-in-applied-data-science/events-deadlines/",
+    #     "https://datascience.uchicago.edu/education/masters-programs/ms-in-applied-data-science/career-outcomes/",
+    #     "https://datascience.uchicago.edu/education/masters-programs/ms-in-applied-data-science/online-program/",
+    #     "https://datascience.uchicago.edu/education/masters-programs/ms-in-applied-data-science/how-to-apply/",
+    #     "https://datascience.uchicago.edu/education/masters-programs/ms-in-applied-data-science/our-students/",
+    #     "https://datascience.uchicago.edu/education/masters-programs/in-person-program/",
+    #     "https://datascience.uchicago.edu/education/masters-programs/ms-in-applied-data-science/capstone-projects/",
+    #     "https://datascience.uchicago.edu/education/masters-programs/online-program/" #add manually
+    # ]
 
 
     # Process URLs
