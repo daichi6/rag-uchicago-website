@@ -252,24 +252,73 @@ def create_and_save_vectordb(documents: List[Document],
         return None
 
 
+def get_subpage_urls(main_url):
+    """
+    Fetches all subpage URLs from a main page.
+    """
+
+    # Fetch the HTML content of the page
+    response = requests.get(main_url)
+    html_content = response.content
+
+    # Parse the HTML with BeautifulSoup
+    soup = BeautifulSoup(html_content, "html.parser")
+
+    # Initialize subpage list with the main URL to ensure it's included
+    urls = [main_url]
+
+    # Find all links and filter those that match our pattern
+    base_url = main_url.rstrip('/')
+    for link in soup.find_all("a", href=True):
+        href = link['href']
+        # Handle relative URLs by joining them with the main URL
+        full_url = href if href.startswith("http") else requests.compat.urljoin(main_url, href)
+        
+        # Add the full URL if it's not already in the list
+        if full_url.startswith(base_url) and full_url not in urls:
+            urls.append(full_url)
+    
+    # Remove duplicates (if any)
+    urls = list(set(urls))
+
+    print("Number of URLs", len(urls))
+    print("All URLs", urls)
+
+    return urls
+
+
+def get_subpage_links(url):
+    """
+    Fetches all subpage URLs from a main page.
+    """
+    response = requests.get(url)
+    html_content = response.content
+
+    soup = BeautifulSoup(html_content, "html.parser")
+
+    subpage_links_all = [url]
+
+    # Find all links and filter those that match our pattern
+    base_url = "https://datascience.uchicago.edu/education/masters-programs/ms-in-applied-data-science/"
+
+    for link in soup.find_all("a", href=True):
+        href = link['href']
+        # Check if href starts with the base URL or matches the exact URL we want to include
+        if href.startswith(base_url) or href == url:
+            # Append the complete URL if relative or absolute
+            full_url = href if href.startswith("http") else requests.compat.urljoin(url, href)
+            subpage_links_all.append(full_url)
+
+    subpage_links_all = list(set(subpage_links_all))
+
+    print("Number of URLs", len(subpage_links_all))
+    print("All URLs", subpage_links_all)
+    
+    return subpage_links_all
+
+
 def main():
-
-    urls = [
-        "https://datascience.uchicago.edu/education/masters-programs/ms-in-applied-data-science/instructors-staff/",
-        "https://datascience.uchicago.edu/education/masters-programs/ms-in-applied-data-science/",
-        "https://datascience.uchicago.edu/education/masters-programs/ms-in-applied-data-science/faqs/",
-        "https://datascience.uchicago.edu/education/masters-programs/ms-in-applied-data-science/course-progressions/",
-        "https://datascience.uchicago.edu/education/masters-programs/ms-in-applied-data-science/tuition-fees-aid/",
-        "https://datascience.uchicago.edu/education/masters-programs/ms-in-applied-data-science/events-deadlines/",
-        "https://datascience.uchicago.edu/education/masters-programs/ms-in-applied-data-science/career-outcomes/",
-        "https://datascience.uchicago.edu/education/masters-programs/ms-in-applied-data-science/online-program/",
-        "https://datascience.uchicago.edu/education/masters-programs/ms-in-applied-data-science/how-to-apply/",
-        "https://datascience.uchicago.edu/education/masters-programs/ms-in-applied-data-science/our-students/",
-        "https://datascience.uchicago.edu/education/masters-programs/in-person-program/",
-        "https://datascience.uchicago.edu/education/masters-programs/ms-in-applied-data-science/capstone-projects/",
-        "https://datascience.uchicago.edu/education/masters-programs/online-program/" #add manually
-    ]
-
+    urls = get_subpage_links("https://datascience.uchicago.edu/education/masters-programs/ms-in-applied-data-science/in-person-program/")
 
     # Process URLs
     documents = process_urls(

@@ -6,3 +6,4 @@ trafilatura
 faiss-cpu
 python-dotenv
 requests
+jsonpointer
