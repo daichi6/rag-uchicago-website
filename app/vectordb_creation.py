@@ -252,41 +252,6 @@ def create_and_save_vectordb(documents: List[Document],
         return None
 
 
-def get_subpage_urls(main_url):
-    """
-    Fetches all subpage URLs from a main page.
-    """
-
-    # Fetch the HTML content of the page
-    response = requests.get(main_url)
-    html_content = response.content
-
-    # Parse the HTML with BeautifulSoup
-    soup = BeautifulSoup(html_content, "html.parser")
-
-    # Initialize subpage list with the main URL to ensure it's included
-    urls = [main_url]
-
-    # Find all links and filter those that match our pattern
-    base_url = main_url.rstrip('/')
-    for link in soup.find_all("a", href=True):
-        href = link['href']
-        # Handle relative URLs by joining them with the main URL
-        full_url = href if href.startswith("http") else requests.compat.urljoin(main_url, href)
-        
-        # Add the full URL if it's not already in the list
-        if full_url.startswith(base_url) and full_url not in urls:
-            urls.append(full_url)
-    
-    # Remove duplicates (if any)
-    urls = list(set(urls))
-
-    print("Number of URLs", len(urls))
-    print("All URLs", urls)
-
-    return urls
-
-
 def get_subpage_links(url):
     """
     Fetches all subpage URLs from a main page.
