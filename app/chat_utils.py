@@ -15,18 +15,10 @@ def create_chat_chain(openai_api_key: str, model_name: str = "gpt-3.5-turbo", te
         openai_api_key=openai_api_key
     )
 
-    # Using triple quotes for multiline string
     template = """You are an assistant for University of Chicago's MS in Applied Data Science program.
 Use the following context (including metadata about the source and type of content) to answer the question at the end. 
 If you cannot find the answer in the context, just say "I'm sorry, I don't have enough information to answer that question."
-Try to be as specific as possible and cite your sources by:
-1. Mentioning which section or type of page the information comes from
-2. Including the relevant URL(s) at the end of your response in parentheses
-
-For example:
-"According to the Curriculum page, the core courses include... (Source: https://example.com/curriculum)"
-or
-"The program requirements, as stated in the Admissions section, include... (Source: https://example.com/admissions)"
+Try to be as specific as possible. Including the relevant URL(s) at the end of your response.
 
 Context:
 {context}
