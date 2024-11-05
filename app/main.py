@@ -26,7 +26,19 @@ vectordb, chain = setup()
 test_queries = [
     "What are the core courses in the MS in Applied Data Science program?",
     "What are the admission requirements for the program?",
-    "Tell me about the capstone project."
+    "Tell me about the capstone project.",
+    "What is the tuition cost for the program?",
+    "What scholarships are available for the program?",
+    "What are the minimum scores for the TOEFL and IELTS English Language Requirement?",
+    "Is there an application fee waiver?",
+    "What are the deadlines for the in-person program?",
+    "How long will it take for me to receive a decision on my application?",
+    "Can I set up an advising appointment with the enrollment management team?",
+    "Where can I mail my official transcripts?",
+    "Does the Master’s in Applied Data Science Online program provide visa sponsorship?",
+    "How do I apply to the MBA/MS program?",
+    "Is the MS in Applied Data Science program STEM/OPT eligible?",
+    "How many courses must you complete to earn UChicago’s Master’s in Applied Data Science?"
 ]
 query = test_queries[2]
 
