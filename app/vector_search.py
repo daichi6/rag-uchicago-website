@@ -141,6 +141,32 @@ def format_chunk_results(documents: List[Document],
     return '\n'.join(output_parts)
 
 
+def inspect_metadata(vectorstore: FAISS, sample_query: str = "sample", sample_size: int = 100) -> Dict[str, set]:
+    """
+    Inspect metadata fields and their potential values from a sample of documents.
+    
+    Args:
+        vectorstore: FAISS vector store
+        sample_query: A query string to use for fetching sample documents
+        sample_size: Number of documents to sample for metadata inspection
+    
+    Returns:
+        Dictionary with metadata fields as keys and sets of their unique values
+    """
+    metadata_summary = {}
+
+    # Retrieve a sample of documents using a simple query
+    sample_docs = vectorstore.similarity_search(query=sample_query, k=sample_size)
+
+    for doc in sample_docs:
+        for key, value in doc.metadata.items():
+            if key not in metadata_summary:
+                metadata_summary[key] = set()
+            metadata_summary[key].add(value)
+    
+    return metadata_summary
+
+
 if __name__ == "__main__":
     # Load the vector database
     base_dir = os.path.dirname(__file__)
@@ -165,7 +191,7 @@ if __name__ == "__main__":
             chunks = search_similar_chunks(
                 vectorstore=db,
                 query=query,
-                k=3
+                k=5
                 # filter_dict={"primary_category": "example"}
             )
 
@@ -182,3 +208,11 @@ if __name__ == "__main__":
             )
 
             print(chunks_formated)
+
+            # Check metadata
+            metadata_summary = inspect_metadata(db, sample_query="example", sample_size=500)
+            print("Metadata Fields and Potential Values:")
+            for field, values in metadata_summary.items():
+                print(f"\n{field}:")
+                for val in values:
+                    print(f"  - {val}")

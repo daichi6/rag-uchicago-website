@@ -41,5 +41,4 @@ test_queries = [
     "How many courses must you complete to earn UChicago’s Master’s in Applied Data Science?"
 ]
 query = test_queries[2]
-
-print(chatbot(query, vectordb, chain))
+print(chatbot(query, vectordb, chain, routing=True))

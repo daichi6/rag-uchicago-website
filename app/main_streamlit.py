@@ -53,7 +53,7 @@ if user_input:
     st.session_state.chat_history.append({"role": "user", "content": user_input})
     
     # Get AI response gradually
-    response = chatbot(user_input, st.session_state.vectordb, st.session_state.chain)
+    response = chatbot(user_input, st.session_state.vectordb, st.session_state.chain, routing=True)
     st.session_state.chat_history.append({"role": "assistant", "content": response})
 
     # Display AI's response gradually
