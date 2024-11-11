@@ -12,7 +12,7 @@ load_dotenv()
 openai_api_key = os.getenv('OPENAI_API_KEY')
 if not openai_api_key:
     raise ValueError("OpenAI API key not found in environment variables")
-    
+
 
 def create_chat_chain(openai_api_key: str, model_name: str = "gpt-4o-2024-08-06", temperature: float = 0.0):
     """
@@ -121,26 +121,30 @@ If no relevant subcategory is found, respond with "None".
         return None
 
 
-def chatbot(user_query: str, vectordb, chain, routing=False):
+class ChatHistory:
+    def __init__(self):
+        self.history = []
+
+    def add_interaction(self, user_query: str, response: str):
+        self.history.append(f"User: {user_query}\nAssistant: {response}")
+
+    def get_history(self) -> str:
+        return "\n".join(self.history)
+
+
+def chatbot(user_query: str, vectordb, chain, chat_history: ChatHistory, routing=False):
     """
     Process user query and generate response using retrieved context with metadata.
     Combines results from both filtered and unfiltered searches if routing is enabled.
+    Includes conversation history.
     """
     if routing:
-        # Find subcategory for filtering
         subcategory = subcategory_finder(user_query)
-
-        # Search with filter
         filtered_chunks = search_similar_chunks(vectorstore=vectordb, query=user_query, k=5, filter_dict=subcategory)
-
-        # Search without filter
         unfiltered_chunks = search_similar_chunks(vectorstore=vectordb, query=user_query, k=5)
-
-        # Combine the results, ensuring no duplicates
         all_chunks = {doc.page_content: doc for doc in (filtered_chunks + unfiltered_chunks)}
         chunks = list(all_chunks.values())
     else:
-        # Retrieve and format chunks without routing
         chunks = search_similar_chunks(vectorstore=vectordb, query=user_query)
     
     context = format_chunk_results(
@@ -155,12 +159,18 @@ def chatbot(user_query: str, vectordb, chain, routing=False):
         include_content=True
     )
     
-    print('======Contexts======\n', context)
+    # Include history in the context
+    history = chat_history.get_history()
+    combined_context = f"{history}\n\nContext:\n{context}"
 
-    # Generate response using the formatted context
+    print('======Contexts======\n', combined_context)
+
     response = chain.invoke({
-        "context": context,
+        "context": combined_context,
         "question": user_query
     })
+
+    # Add this interaction to the chat history
+    chat_history.add_interaction(user_query, response)
 
     return response

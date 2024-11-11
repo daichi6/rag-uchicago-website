@@ -1,7 +1,7 @@
 import os
 from dotenv import load_dotenv
 from vector_search import load_vectordb
-from chat_utils import create_chat_chain, chatbot
+from chat_utils import create_chat_chain, chatbot, ChatHistory
 
 def setup():
     """
@@ -18,11 +18,13 @@ def setup():
 
     chain = create_chat_chain(openai_api_key)
 
-    return vectordb, chain
+    chat_history = ChatHistory()
+
+    return vectordb, chain, chat_history
 
 
 # main
-vectordb, chain = setup()
+vectordb, chain, chat_history = setup()
 test_queries = [
     "What are the core courses in the MS in Applied Data Science program?",
     "What are the admission requirements for the program?",
@@ -41,4 +43,7 @@ test_queries = [
     "How many courses must you complete to earn UChicago’s Master’s in Applied Data Science?"
 ]
 query = test_queries[2]
-print(chatbot(query, vectordb, chain, routing=True))
+print(chatbot(query, vectordb, chain, chat_history, routing=True))
+
+query = "Can you summarize your answer?"
+print(chatbot(query, vectordb, chain, chat_history, routing=True))

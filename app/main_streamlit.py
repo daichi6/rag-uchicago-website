@@ -3,7 +3,7 @@ import streamlit as st
 import time
 from dotenv import load_dotenv
 from vector_search import load_vectordb
-from chat_utils import create_chat_chain, chatbot
+from chat_utils import create_chat_chain, chatbot, ChatHistory
 
 # Load environment variables and setup initial configurations
 def setup():
@@ -23,19 +23,26 @@ def setup():
 
     return vectordb, chain
 
+
 # Initialize setup only once
 if 'vectordb' not in st.session_state or 'chain' not in st.session_state:
     vectordb, chain = setup()
     st.session_state.vectordb = vectordb
     st.session_state.chain = chain
 
+# Initialize display chat history for Streamlit and LLM chat history separately
+# for display only
 if "chat_history" not in st.session_state:
     st.session_state.chat_history = []
+# for LLM conversation history
+if "llm_chat_history" not in st.session_state:
+    st.session_state.llm_chat_history = ChatHistory()
+
 
 st.title("🏫 AI Assistant for the UChicago MS-ADS Program")
 st.write("💡 Ask any questions about the MS-ADS Program")
 
-# Display chat messages from history
+# Display chat messages from display-only history
 for entry in st.session_state.chat_history:
     role = "👤" if entry["role"] == "user" else "🤖"
     st.write(f"**{role}:** {entry['content']}")
@@ -49,12 +56,16 @@ user_input = st.text_input("Enter your question here:", key="input_text" if not 
 
 # Process the user's query and get a response
 if user_input:
-    # Add user query to chat history
+    # Add user query to display history
     st.session_state.chat_history.append({"role": "user", "content": user_input})
     
-    # Get AI response gradually
-    response = chatbot(user_input, st.session_state.vectordb, st.session_state.chain, routing=True)
+    # Get AI response with conversation history
+    response = chatbot(user_input, st.session_state.vectordb, st.session_state.chain, st.session_state.llm_chat_history, routing=True)
+    
+    # Add AI response to display history and to LLM chat history
     st.session_state.chat_history.append({"role": "assistant", "content": response})
+    # Keep history for LLM
+    st.session_state.llm_chat_history.add_interaction(user_input, response)
 
     # Display AI's response gradually
     placeholder = st.empty()
