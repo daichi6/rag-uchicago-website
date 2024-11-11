@@ -42,8 +42,5 @@ test_queries = [
     "Is the MS in Applied Data Science program STEM/OPT eligible?",
     "How many courses must you complete to earn UChicago’s Master’s in Applied Data Science?"
 ]
-query = test_queries[2]
-print(chatbot(query, vectordb, chain, chat_history, routing=True))
-
-query = "Can you summarize your answer?"
-print(chatbot(query, vectordb, chain, chat_history, routing=True))
+query = test_queries[6]
+print(chatbot(query, vectordb, chain, chat_history, routing=True, fusion=True))

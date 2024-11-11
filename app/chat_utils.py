@@ -4,9 +4,11 @@ from langchain_core.output_parsers import StrOutputParser
 from langchain_core.runnables import RunnablePassthrough
 from vector_search import search_similar_chunks, format_chunk_results
 import json
-from typing import Optional, Dict
+from typing import List, Optional, Dict
 from dotenv import load_dotenv
 import os
+from langchain.load import dumps, loads
+
 
 load_dotenv()
 openai_api_key = os.getenv('OPENAI_API_KEY')
@@ -121,6 +123,100 @@ If no relevant subcategory is found, respond with "None".
         return None
 
 
+def rewrite_queries(question: str, model_name: str = "gpt-4o-2024-08-06", temperature: float = 0.7) -> List[str]:
+    """
+    Generate multiple rewrites of a user's query using the OpenAI model.
+
+    Args:
+        question: The original question to be rewritten.
+        model_name: The name of the OpenAI model (default is "gpt-4o-2024-08-06").
+        temperature: The temperature setting for the model's response (default is 0.7 for more variability).
+    
+    Returns:
+        A list containing the original question and multiple rewrites.
+    """
+    # Initialize the OpenAI model
+    llm = ChatOpenAI(
+        model_name=model_name,
+        temperature=temperature,
+        openai_api_key=openai_api_key
+    )
+
+    # Create a prompt template to rewrite the query
+    template = """You are an assistant for the University of Chicago's MS in Applied Data Science program. Your task is rephrasing queries to improve retrieval performance(RAG).
+Your have to generate multiple rephrased versions of the original "Question" to enhance diversity in information retrieval.
+Please output the rephrased versions in a JSON list format, with the original question included. 
+Since your response will be used directly as a filter, do not include any comments outside of the JSON format.
+
+## Example Output ##
+[
+    "{{original question}}",
+    "Rephrased question 1",
+    "Rephrased question 2",
+    "Rephrased question 3"
+]
+
+## Question ##
+{question}
+
+## Answer ##
+"""
+    
+    prompt = ChatPromptTemplate.from_template(template)
+    
+    # Format the prompt with the original question
+    formatted_prompt = prompt.format(question=question)
+    
+    # Get the response with `invoke` method
+    response = llm.invoke(formatted_prompt)
+
+    print("Original Response from Rewrite Queries:", response.content)
+    
+    try:
+        # Attempt to parse the response content as JSON list
+        result = json.loads(response.content)
+        
+        # Check if result is a list and contains the original question and rewrites
+        if isinstance(result, list) and question in result:
+            return result
+        else:
+            # Return original question if parsing fails
+            return [question]
+    except (json.JSONDecodeError, AttributeError):
+        # Return original question if there's an error
+        return [question]
+
+
+def reciprocal_rank_fusion(results: list[list], k=60, top_n=5):
+    """
+    Reciprocal rank fusion for merging multiple lists of ranked documents.
+    Returns only the top_n documents.
+    """
+    fused_scores = {}
+
+    for docs in results:
+        for rank, doc in enumerate(docs):
+            # Serialize doc to use as a dictionary key
+            doc_str = dumps(doc)
+            if doc_str not in fused_scores:
+                fused_scores[doc_str] = 0
+            fused_scores[doc_str] += 1 / (rank + k)
+    
+    # Print scores for debugging purposes
+    # print("Document Scores (Before Ranking):")
+    # for doc_str, score in fused_scores.items():
+    #     doc = loads(doc_str)  # Deserialize doc for readability
+    #     print(f"Document: {doc}, Score: {score}")
+    
+    reranked_results = [
+        (loads(doc), score)
+        for doc, score in sorted(fused_scores.items(), key=lambda x: x[1], reverse=True)
+    ]
+
+    # Return only the top_n documents
+    return [doc for doc, score in reranked_results[:top_n]]
+
+
 class ChatHistory:
     def __init__(self):
         self.history = []
@@ -132,20 +228,50 @@ class ChatHistory:
         return "\n".join(self.history)
 
 
-def chatbot(user_query: str, vectordb, chain, chat_history: ChatHistory, routing=False):
+def chatbot(user_query: str, vectordb, chain, chat_history: ChatHistory, routing=False, fusion=False):
     """
     Process user query and generate response using retrieved context with metadata.
     Combines results from both filtered and unfiltered searches if routing is enabled.
     Includes conversation history.
     """
-    if routing:
+    
+    if fusion and routing:
+       # Generate rewritten queries for fusion
+        rewritten_queries = rewrite_queries(user_query)
+        all_results = []
+        # Execute search for each rewritten query with k=10
+        for query in rewritten_queries:
+            chunks_per_query = search_similar_chunks(vectorstore=vectordb, query=query, k=10)
+            all_results.append(chunks_per_query)
+        # Perform reciprocal rank fusion to get top 5 fused results
+        fused_chunks = reciprocal_rank_fusion(all_results, top_n=5)
+        # Initialize chunks with top 5 fused results
+        chunks = fused_chunks
+        
+        # Apply routing with subcategory filtering to get additional 5 chunks
+        subcategory = subcategory_finder(user_query)
+        filtered_chunks = search_similar_chunks(vectorstore=vectordb, query=user_query, k=5, filter_dict=subcategory)
+        # Combine both fusion and routing results (5 from fusion + 5 from routing)
+        chunks.extend(filtered_chunks)
+
+    elif fusion:
+        rewritten_queries = rewrite_queries(user_query)
+        all_results = []
+        for query in rewritten_queries:
+            chunks = search_similar_chunks(vectorstore=vectordb, query=query, k=10)
+            all_results.append(chunks)
+        chunks = reciprocal_rank_fusion(all_results, top_n=10)
+
+    elif routing:
         subcategory = subcategory_finder(user_query)
         filtered_chunks = search_similar_chunks(vectorstore=vectordb, query=user_query, k=5, filter_dict=subcategory)
         unfiltered_chunks = search_similar_chunks(vectorstore=vectordb, query=user_query, k=5)
         all_chunks = {doc.page_content: doc for doc in (filtered_chunks + unfiltered_chunks)}
         chunks = list(all_chunks.values())
+
     else:
-        chunks = search_similar_chunks(vectorstore=vectordb, query=user_query)
+        chunks = search_similar_chunks(vectorstore=vectordb, query=user_query, k=5)
+    
     
     context = format_chunk_results(
         chunks,

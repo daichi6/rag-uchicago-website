@@ -60,7 +60,7 @@ if user_input:
     st.session_state.chat_history.append({"role": "user", "content": user_input})
     
     # Get AI response with conversation history
-    response = chatbot(user_input, st.session_state.vectordb, st.session_state.chain, st.session_state.llm_chat_history, routing=True)
+    response = chatbot(user_input, st.session_state.vectordb, st.session_state.chain, st.session_state.llm_chat_history, routing=True, fusion=True)
     
     # Add AI response to display history and to LLM chat history
     st.session_state.chat_history.append({"role": "assistant", "content": response})
